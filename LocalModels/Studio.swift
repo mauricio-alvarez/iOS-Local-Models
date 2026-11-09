@@ -1,6 +1,5 @@
 import SwiftUI
 import LocalInference
-import AVFoundation
 
 struct ChatMessage: Identifiable {
     let id = UUID()
@@ -21,14 +20,15 @@ struct ChatMessage: Identifiable {
     var downloadID: String?
     var downloadProgress: Double = 0
     var importing = false
-    var tab = 0
+    var tab: TaskTab = .chat
+    var chatInput: ChatInput = .text
     var outputLimit = 256
     private let engine = LlamaEngine()
     private var work: Task<Void, Never>?
     private var download: Task<Void, Never>?
     private var runID: UUID?
     private var releasing = false
-    private let speaker = AVSpeechSynthesizer()
+    private var conversationModelID: String?
 
     init() { refresh() }
     func refresh() {
@@ -45,9 +45,13 @@ struct ChatMessage: Identifiable {
                 try Task.checkCancellation()
                 active = model
                 status = "Ready on this iPhone"
-                messages = []
-                metrics = ""
-                tab = 0
+                if conversationModelID != model.id {
+                    messages = []
+                    metrics = ""
+                }
+                conversationModelID = model.id
+                tab = .chat
+                chatInput = .text
             } catch is CancellationError { status = "Model unloaded" }
             catch { self.error = error.localizedDescription; status = "Could not load model" }
             if !releasing { busy = false }
@@ -61,7 +65,6 @@ struct ChatMessage: Identifiable {
         work?.cancel()
         runID = nil
         active = nil
-        speaker.stopSpeaking(at: .immediate)
         // The engine serializes this behind any decode already in flight.
         work = Task {
             await pending?.value
@@ -117,17 +120,6 @@ struct ChatMessage: Identifiable {
     }
     func stop() { work?.cancel() }
     func clear() { guard !busy else { return }; messages = []; metrics = "" }
-    func speak(_ text: String) {
-        speaker.stopSpeaking(at: .immediate)
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: .duckOthers)
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch { self.error = error.localizedDescription; return }
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: Locale.current.identifier)
-        speaker.speak(utterance)
-    }
-    func stopSpeaking() { speaker.stopSpeaking(at: .immediate) }
     func remove(_ model: LocalModel) {
         guard !busy, active?.id != model.id else { return }
         do { try FileManager.default.removeItem(at: model.url); refresh() }

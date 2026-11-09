@@ -4,19 +4,22 @@ import LocalInference
 @main struct LocalModelsApp: App {
     @State private var studio = Studio()
     @State private var native = NativeTools()
+    @State private var speech = SpeechOutput()
     @Environment(\.scenePhase) private var phase
     var body: some Scene {
         WindowGroup {
-            ContentView(studio: studio, native: native)
+            ContentView(studio: studio, native: native, speech: speech)
                 .tint(.teal)
                 .onChange(of: phase) { _, phase in
                     if phase == .background {
                         native.stopRecording()
+                        speech.stop()
                         studio.unload(reason: "Unloaded while in background")
                     }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didReceiveMemoryWarningNotification)) { _ in
                     native.stopRecording()
+                    speech.stop()
                     studio.unload(reason: "Unloaded to free memory")
                 }
                 .task {

@@ -15,3 +15,16 @@ Earlier device UI runs encountered an overlapping picture-in-picture video and m
 OCR, microphone permissions, offline dictation availability, text-to-speech, and downloads/imports through the UI have compiled successfully but have not received end-to-end device tests. The catalog download URLs, pinned file sizes, and SHA-256 hashes were verified on the Mac. Both model files were transferred to the iPhone and used for real inference.
 
 No claim is made about all-day stability, maximum safe context across arbitrary imported models, or compatibility with every GGUF architecture. VLMs and additional speech-model runtimes are outside this build's scope.
+
+## Task island update
+
+The app now uses four native destinations: Chat, OCR, Transcribe, and Speak, with a shared model library available from every screen. No inference dependencies or model weights were added for the navigation update. The signed Release build is approximately 8.4 MB excluding model files.
+
+Both physical-iPhone UI tests passed in the final run (`TestResults/TaskIslandVerified.xcresult`, Git-ignored):
+
+- All four destinations, Text/Image mode selection, the explicit unavailable state for image chat, the Image-to-OCR shortcut, opening/dismissing the shared library from OCR, and installed voice selection.
+- Loading a downloaded GGUF model, real inference returning Paris, transferring that response into Speak, releasing the model when leaving Chat, and preserving the conversation when reloading the same model.
+
+Screenshots: [Chat](task-island-chat.png) · [OCR](task-island-ocr.png).
+
+The microphone recording, OCR photo selection/recognition, and audible speech playback paths were not exercised by these UI tests. Recording permissions and speech-language availability remain device-dependent. The earlier core inference tests still apply; the native inference engine was not changed in this update.

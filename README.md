@@ -7,9 +7,20 @@ A small native SwiftUI inference app for iPhone 13 and newer. Model weights live
 1. Open `LocalModels.xcodeproj` in Xcode 16 or newer (validated with Xcode 27.2).
 2. Select the **LocalModels** scheme and a **physical iPhone** running iOS 17 or newer.
 3. Select your development team under Signing & Capabilities. The checked-in configuration uses the original developer's personal team; change `DEVELOPMENT_TEAM` and the bundle identifier in `Config/App.xcconfig` for your account. UI test signing is in `Config/Tests.xcconfig`.
-4. Build and run. In **Models**, download Gemma or Qwen, or import a compatible instruction-tuned `.gguf` from Files. Tap **Load model**, then chat.
+4. Build and run. Open **Model library** using the stack icon at the top of any workspace, then download Gemma or Qwen, or import a compatible instruction-tuned `.gguf` from Files. Tap **Load model**, then chat. You can also tap the model name in Chat to switch between downloaded text models.
 
 The pinned upstream binary does **not include an iOS Simulator slice**. Use a physical iPhone for the app, and `swift test` on macOS for the shared inference engine. Xcode downloads the pinned runtime the first time packages are resolved; model weights are never bundled or checked into Git.
+
+## Task island
+
+The floating system tab bar has four destinations: **Chat**, **OCR**, **Transcribe**, and **Speak**. Model downloads and storage live in a shared library sheet, available from every tab.
+
+- **Chat** has Text and Image modes. Text runs the installed GGUF models; Image is explicitly unavailable until a vision runtime is integrated and links to OCR for reading text from photos.
+- **OCR** provides photo selection, document preview, extracted text, copy/export, and Send to Chat.
+- **Transcribe** provides on-device dictation, recording duration, a live transcript, export, and Send to Chat.
+- **Speak** provides an editable text area, installed voice selection, speaking rate, and read/stop controls. Chat responses can be opened here for reading.
+
+Drafts and results survive tab switches. Leaving Chat or selecting Image releases the active text model to keep memory available for native tasks. Returning to text chat requires loading a model again; reloading the same model preserves the conversation, while choosing a different model starts a new one. Leaving Transcribe stops recording, including pending permission requests; leaving Speak stops playback.
 
 ## Included
 
@@ -70,6 +81,9 @@ For automated developer smoke checks, Debug builds accept `--smoke-test` and opt
 - `LocalModels/Studio.swift`: UI state, inference orchestration, downloads.
 - `LocalModels/ModelStore.swift`: catalog, file validation and model installation.
 - `LocalModels/NativeTools.swift`: OCR and strictly on-device dictation.
-- `LocalModels/ContentView.swift`: the three native screens.
+- `LocalModels/ContentView.swift`: Task island navigation, shared library access, and Chat.
+- `LocalModels/ModelLibrary.swift`: downloaded model picker and download/import management.
+- `LocalModels/NativeWorkspaces.swift`: dedicated OCR, Transcribe, and Speak screens.
+- `LocalModels/SpeechOutput.swift`: installed voices, speech playback state, and audio-session cleanup.
 
 The app's only external Swift package is [llama.swift](https://github.com/mattt/llama.swift), an MIT-licensed wrapper for [llama.cpp](https://github.com/ggml-org/llama.cpp). Its precompiled XCFramework is verified by Swift Package Manager. `Package.resolved` pins the dependency commit.
